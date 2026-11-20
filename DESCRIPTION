@@ -1,0 +1,42 @@
+Package: cavefindr
+Title: Detect Cave Entrances from Airborne LiDAR Point Clouds
+Version: 1.0.0
+Authors@R:
+    person("Afonso", "Rodrigues", , "afonsobm5@gmail.com", role = c("aut", "cre"))
+Description: Tools to locate, correct, and predict cave entrance locations
+    from airborne LiDAR (LAS/LAZ) point clouds. Provides functions to
+    inspect point cloud coordinates, correct GPS error in a known cave
+    database using ground-plane geometry, train a random forest classifier
+    on curated cave regions of interest, and generate new candidate cave
+    entrance predictions (via simple thresholds or the trained model) with
+    optional interactive case-by-case review.
+License: GPL (>= 3)
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+Depends:
+    R (>= 4.1.0)
+Imports:
+    checkmate,
+    dbscan,
+    FNN,
+    ggplot2,
+    graphics,
+    grDevices,
+    here,
+    lidR,
+    maptiles,
+    randomForest,
+    rgl,
+    sf,
+    stats,
+    terra,
+    tidyr,
+    utils
+Suggests:
+    knitr,
+    rmarkdown
+Additional_repositories: https://r-lidar.r-universe.dev
+VignetteBuilder: knitr
+Config/roxygen2/version: 8.1.1
+URL: https://github.com/AfonsoBMR/cavefindr
+BugReports: https://github.com/AfonsoBMR/cavefindr/issues

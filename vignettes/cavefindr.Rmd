@@ -1,0 +1,136 @@
+---
+title: "Getting started with cavefindr"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting started with cavefindr}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE
+)
+```
+
+This vignette walks through the full cavefindr pipeline (correcting cave
+coordinates, training a model, and predicting new cave entrances) using a
+small example dataset that comes with the package. The functions produce 
+some diagnostic plots that might appear in RStudio's "Plots", hidden by 
+the vignette.
+
+## Setup
+
+Pick or create a working directory to store an output folder: 
+that's where `correct_coordinates()`, `train_model()`, and `get_predictions()` will save their results.
+
+```{r setup}
+library(cavefindr)
+```
+
+## Get the example data
+
+`get_example_las()` and `get_example_cave_dataset()` read the 
+example LAS tile and cave coordinate dataset into memory.
+
+```{r get-data}
+my_las <- get_example_las()
+my_las
+lidR::plot(my_las)
+lidR::las_check(my_las)
+
+my_cave_dataset <- get_example_cave_dataset()
+my_cave_dataset
+```
+
+The example data simulates a small (200 x 200 m) LiDAR tile with 3 narrow, deep depressions that are clearly detectable in the pointcloud, 1 shallow depression that is not detectable, and a cave coordinate dataset with the GPS-error-affected location of each of the above, plus one point that falls entirely outside the LAS tile.
+
+## Check a coordinate
+
+`check_coordinate()` lets you look at the pointcloud around any single coordinate.
+
+```{r check-coordinate}
+check_coordinate(
+  x = -50347.3,
+  y = -12417.2,
+  las = my_las,
+  radius = 10
+)
+```
+
+## Correct cave coordinates
+
+`correct_coordinates()` takes the cave database and, for each
+point, looks for the true entrance location in the pointcloud within the set radius.
+You'll be asked if each of the 5 points is detectable in the pointcloud, since the 
+function can only correct caves which are detectable.
+
+```{r correct-coordinates}
+my_cave_rois_corrected <- correct_coordinates(
+  cave_vect = my_cave_dataset,
+  las = my_las,
+  radius = 10,
+  review = TRUE
+)
+```
+
+## Train a model
+
+`train_model()` computes a set of metrics for each
+corrected cave ROI plus an equal number of random background ROIs, and
+trains a random forest classifier to distinguish them. You can pass the object
+returned by `correct_coordinates()` directly, or its export id.
+
+```{r train-model}
+my_model <- train_model(
+  corrected_rois = my_cave_rois_corrected,
+  las = my_las,
+  metrics = c(
+    "depth_plane",
+    "depth_mean",
+    "depth_half_radius_mean",
+    "depth_w_mean",
+    "slope",
+    "intensity",
+    "NIR"
+  ),
+  plot = TRUE,
+  var_imp = TRUE
+)
+```
+
+## Predict new cave entrances
+
+`get_predictions()` scans a LAS tile for candidate cave entrances, either
+using the trained model (`method = "model"`) or simple mechanistic
+thresholds (`method = "simple"`). With `inspection = TRUE`, each candidate
+is shown to you for manual inspection and labeling of each point.
+
+```{r predict-model}
+get_predictions(
+  method = "model",
+  las = my_las,
+  model = my_model,
+  score_threshold = 0.5,
+  isolated_policy = "include",
+  remove_edges = TRUE,
+  remove_waterlines = TRUE,
+  inspection = TRUE
+)
+```
+
+```{r predict-simple}
+get_predictions(
+  method = "simple",
+  las = my_las,
+  metric_thresholds = list(depth_plane = 2),
+  radius = 10,
+  isolated_policy = "include",
+  remove_edges = TRUE,
+  remove_waterlines = TRUE,
+  inspection = TRUE
+)
+```
+
